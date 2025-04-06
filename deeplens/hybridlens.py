@@ -33,7 +33,7 @@ from .optics.monte_carlo import forward_integral
 from .optics.geometric_surface import Diffractive_GEO
 from .optics.diffractive_surface import Binary2, Pixel2D, Fresnel, Zernike
 from .optics.wave import AngularSpectrumMethod
-from .optics.waveoptics_utils import diff_float
+from .optics.utils import diff_float
 from .geolens_utils import draw_setup_2d, draw_raytraces_2d
 
 

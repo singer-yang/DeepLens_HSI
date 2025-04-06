@@ -106,7 +106,7 @@ class NAFNet(nn.Module):
             x = decoder(x)
 
         x = self.ending(x)
-        x = x + inp[:, :x.shape[1], :, :]
+        # x = x + inp[:, :x.shape[1], :, :] #TODO: this is commented out for HSI reconstruction
 
         return x[:, :, :H, :W]
 

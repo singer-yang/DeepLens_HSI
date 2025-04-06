@@ -15,6 +15,11 @@ class Renderer:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = device
 
+    def __call__(self, *args, **kwargs):
+        """Render a blurry and noisy RGB image batch with for loop.
+        """
+        return self.render(*args, **kwargs)
+
     def set_device(self, device):
         """Set the device for rendering."""
         self.device = device
@@ -26,10 +31,14 @@ class Renderer:
                 data_dict[key] = data_dict[key].to(self.device)
         return data_dict
 
-    def __call__(self, *args, **kwargs):
-        return self.render(*args, **kwargs)
+    def render_single_frame(self, *args, **kwargs):
+        """Render a single frame of a blurry and noisy RGB image from spectral data.
+        """
+        raise NotImplementedError
     
     def render(self, data_dict):
+        """Render a blurry and noisy RGB image batch with for loop.
+        """
         raise NotImplementedError
 
 

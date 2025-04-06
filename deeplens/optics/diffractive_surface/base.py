@@ -102,17 +102,16 @@ class DiffractiveSurface(DeepObj):
         return phase_map
 
     def forward(self, wave):
-        """1, Propagate to DOE.
-            2, Apply phase modulation.
-
-            Recommaneded field has [B, 1, H, W] shape.
-
-            Consider input field has different pixel size ad physical size with the DOE.
-
-            Reference: https://github.com/vsitzmann/deepoptics function phaseshifts_from_height_map
-
+        """Propagate wave field to the DOE and apply phase modulation. Input wave field can have different pixel size and physical size with the DOE.
+        
         Args:
-            wave (Wave): Input complex wave field.
+            wave (Wave): Input complex wave field. Shape of [B, 1, H, W].
+
+        Returns:
+            wave (Wave): Output complex wave field. Shape of [B, 1, H, W].
+
+        Reference: 
+            [1] https://github.com/vsitzmann/deepoptics function phaseshifts_from_height_map
         """
         # Propagate to DOE
         wave.prop_to(self.d)

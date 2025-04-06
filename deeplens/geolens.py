@@ -55,7 +55,7 @@ from .optics.geometric_surface import (
     ThinLens,
 )
 from .optics.wave import AngularSpectrumMethod
-from .optics.waveoptics_utils import diff_float
+from .optics.utils import diff_float
 from .utils import (
     batch_psnr,
     batch_ssim,

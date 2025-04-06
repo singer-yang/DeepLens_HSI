@@ -1,0 +1,6 @@
+./datasets/kaist/scene25_reflectance.exr
+./datasets/kaist/scene26_reflectance.exr
+./datasets/kaist/scene27_reflectance.exr
+./datasets/kaist/scene28_reflectance.exr
+./datasets/kaist/scene29_reflectance.exr
+./datasets/kaist/scene30_reflectance.exr

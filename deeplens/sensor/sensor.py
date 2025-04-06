@@ -324,6 +324,13 @@ class RGBSensor(Sensor):
             green_response=green_response,
             blue_response=blue_response,
         )
+    
+    def to(self, device):
+        super().to(device)
+        self.red_response = self.red_response.to(device)
+        self.green_response = self.green_response.to(device)
+        self.blue_response = self.blue_response.to(device)
+        return self
 
     def response_curve(self, img_spectral):
         """Apply response curve to the spectral image to get the raw image.
@@ -344,9 +351,9 @@ class RGBSensor(Sensor):
                 ),
                 device=img_spectral.device,
             )
-            img_raw[:, 0, :, :] = img_spectral @ self.red_response
-            img_raw[:, 1, :, :] = img_spectral @ self.green_response
-            img_raw[:, 2, :, :] = img_spectral @ self.blue_response
+            img_raw[:, 0, :, :] = (img_spectral * self.red_response.view(1, -1, 1, 1)).sum(dim=1)
+            img_raw[:, 1, :, :] = (img_spectral * self.green_response.view(1, -1, 1, 1)).sum(dim=1)
+            img_raw[:, 2, :, :] = (img_spectral * self.blue_response.view(1, -1, 1, 1)).sum(dim=1)
         else:
             assert img_spectral.shape[1] == 3, (
                 "No spectral response curves provided, input image must have 3 channels"

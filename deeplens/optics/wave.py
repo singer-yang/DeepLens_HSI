@@ -346,7 +346,7 @@ def AngularSpectrumMethod(u, z, wvln, ps, n=1.0, padding=True):
     """
     assert wvln > 0.1 and wvln < 10, "wvln unit should be [um]."
     wvln_mm = wvln * 1e-3  # [um] to [mm]
-    k = 2 * n * np.pi / wvln_mm  # [mm]-1
+    k = 2 * n * torch.pi / wvln_mm  # [mm]-1
 
     # Shape
     if len(u.shape) == 2:
@@ -426,7 +426,7 @@ def FresnelDiffraction(u, z, wvln, ps, n=1.0, padding=True, TF=None):
     # Compute H function
     assert wvln > 0.1 and wvln < 10, "wvln should be in [um]."
     wvln_mm = wvln * 1e-3  # [um] to [mm]
-    k = 2 * n * np.pi / wvln_mm
+    k = 2 * n * torch.pi / wvln_mm
     x, y = torch.meshgrid(
         torch.linspace(-0.5 * Wimg * ps, 0.5 * Himg * ps, Wimg + 1, device=u.device)[
             :-1
@@ -451,7 +451,7 @@ def FresnelDiffraction(u, z, wvln, ps, n=1.0, padding=True, TF=None):
             TF = False
 
     if TF:
-        H = np.sqrt(n) * torch.exp(-1j * np.pi * wvln_mm * z * (fx**2 + fy**2) / n)
+        H = torch.sqrt(n) * torch.exp(-1j * torch.pi * wvln_mm * z * (fx**2 + fy**2) / n)
         H = fftshift(H)
     else:    
         h = n / (1j * wvln_mm * z) * torch.exp(1j * k / (2 * z) * (x**2 + y**2))
@@ -503,7 +503,7 @@ def FraunhoferDiffraction(u, z, wvln, ps, n=1.0, padding=True):
 
     # Computational fourier optics. Chapter 5, section 5.5.
     # Shorter propagation will not affect final results.
-    k = 2 * n * np.pi / wvln_mm
+    k = 2 * n * torch.pi / wvln_mm
     c = n / (1j * wvln_mm * z) * torch.exp(1j * k / (2 * z) * (x2**2 + y2**2))
     u = c * ps**2 * ifftshift(fft2(fftshift(u)))
 
@@ -575,7 +575,7 @@ def RayleighSommerfeldIntegral(
     # Parameters
     assert wvln > 0.1 and wvln < 10, "wvln unit should be [um]."
     wvln_mm = wvln * 1e-3  # [um] to [mm]
-    k = n * 2 * np.pi / wvln_mm  # wave number [mm]-1
+    k = n * 2 * torch.pi / wvln_mm  # wave number [mm]-1
     if x2 is None:
         x2 = x1.clone()
     if y2 is None:
@@ -602,7 +602,7 @@ def RayleighSommerfeldIntegral(
         obliq = z / r
 
         u2 = torch.sum(
-            u1 * obliq / r * torch.exp(1j * torch.fmod(k * r, 2 * np.pi)),
+            u1 * obliq / r * torch.exp(1j * torch.fmod(k * r, 2 * torch.pi)),
             (0, 1),
         )
         u2 = u2 / (1j * wvln_mm)
@@ -629,7 +629,7 @@ def RayleighSommerfeldIntegral(
 
                 # Shape of [patch_size, patch_size]
                 u2_patch = torch.sum(
-                    u1 * obliq / r * torch.exp(1j * torch.fmod(k * r, 2 * np.pi)),
+                    u1 * obliq / r * torch.exp(1j * torch.fmod(k * r, 2 * torch.pi)),
                     (0, 1),
                 )
 

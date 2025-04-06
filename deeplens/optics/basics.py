@@ -264,9 +264,10 @@ class DeepObj:
 
         torch.set_default_dtype(torch.float64)
         """
-        assert (
-            torch.get_default_dtype() == torch.float64
-        ), "Default dtype should be float64."
+        # assert (
+        #     torch.get_default_dtype() == torch.float64
+        # ), "Default dtype should be float64."
+        self.dtype = torch.float64
 
         for key, val in vars(self).items():
             if torch.is_tensor(val):
