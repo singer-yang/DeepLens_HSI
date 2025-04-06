@@ -24,11 +24,12 @@ from .optics.render_psf import render_psf_map, render_psf
 
 
 class Lens(DeepObj):
-    def __init__(self, filename=None, sensor_res=(1024, 1024), device=None):
+    def __init__(self, filename=None, sensor_size=(8.0, 8.0), sensor_res=(1024, 1024), device=None):
         """Initialize a lens class.
 
         Args:
             filename (str): Path to the lens file.
+            sensor_size (tuple, optional): Sensor size (W, H). Defaults to (8.0, 8.0).
             sensor_res (tuple, optional): Sensor resolution (W, H). Defaults to (1024, 1024).
             device (str, optional): Device to run the lens. Defaults to None.
         """
@@ -37,7 +38,9 @@ class Lens(DeepObj):
         self.device = device
 
         # Sensor
+        self.sensor_size = sensor_size
         self.sensor_res = sensor_res
+        self.pixel_size = self.sensor_size[0] / self.sensor_res[0]
 
         # Lens
         if filename is not None:

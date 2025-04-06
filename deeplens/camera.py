@@ -2,12 +2,13 @@
 
 import torch
 
-from deeplens import GeoLens
-from deeplens.sensor import RGBSensor
+from .optics.basics import DeepObj
+from .geolens import GeoLens
+from .sensor import RGBSensor
 
 
 class Renderer:
-    """In the future Renderer will be replaced as Camera to be integrated into DeepLens code"""
+    """Renderer is a basic class for image simulation."""
 
     def __init__(self, device=None):
         if device is None:
@@ -26,10 +27,15 @@ class Renderer:
         return data_dict
 
     def __call__(self, *args, **kwargs):
+        return self.render(*args, **kwargs)
+    
+    def render(self, data_dict):
         raise NotImplementedError
 
 
 class Camera(Renderer):
+    """Camera includes an optical lens and a sensor. It is used to simulate real camera-captured images for computational photography."""
+
     def __init__(
         self,
         lens_file,

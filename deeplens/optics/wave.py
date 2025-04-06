@@ -71,7 +71,7 @@ class ComplexWave(DeepObj):
         assert wvln > 0.1 and wvln < 1, "wvln unit should be [um]."
         self.wvln = wvln  # wvln, store in [um]
         self.k = 2 * torch.pi / (self.wvln * 1e-3)  # distance unit [mm]
-        self.phy_size = np.array(phy_size)  # physical size with padding, in [mm]
+        self.phy_size = phy_size  # physical size with padding, in [mm]
         self.valid_phy_size = (
             self.phy_size if valid_phy_size is None else np.array(valid_phy_size)
         )  # physical size without padding, in [mm]

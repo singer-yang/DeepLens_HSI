@@ -23,10 +23,17 @@ from .optics.basics import DEPTH, EPSILON, DEFAULT_WAVE
 from .optics.diffractive_surface import Binary2, Fresnel, Pixel2D, ThinLens, Zernike
 from .optics.materials import Material
 from .optics.waveoptics_utils import point_source_field, plane_wave_field
+from .optics.render_psf import render_psf
 
 
 class DiffractiveLens(Lens):
-    def __init__(self, filename=None, sensor_res=(2000, 2000), device=None):
+    def __init__(
+        self,
+        filename=None,
+        sensor_size=(8.0, 8.0),
+        sensor_res=(2000, 2000),
+        device=None,
+    ):
         """Initialize a lens consisting of a diffractive optical element (DOE).
 
         Args:
@@ -34,14 +41,19 @@ class DiffractiveLens(Lens):
             sensor_res (tuple, optional): Sensor resolution (W, H). Defaults to (2000, 2000).
             device (str, optional): Device to run the lens. Defaults to "cpu".
         """
-        super().__init__(lens_path=filename, sensor_res=sensor_res, device=device)
+        super().__init__(
+            filename=filename,
+            sensor_size=sensor_size,
+            sensor_res=sensor_res,
+            device=device,
+        )
 
         torch.set_default_dtype(torch.float64)
         self.double()
 
     @classmethod
     def load_example1(cls):
-        self = cls(sensor_res=(2000, 2000))
+        self = cls(sensor_size=(8.0, 8.0), sensor_res=(2000, 2000))
 
         # Diffractive Fresnel DOE
         self.surfaces = [Fresnel(f0=50, d=0, size=4, res=4000)]
@@ -56,7 +68,7 @@ class DiffractiveLens(Lens):
     @classmethod
     def load_example2(cls):
         """Initialize a lens from a dict."""
-        self = cls(sensor_res=(2000, 2000))
+        self = cls(sensor_size=(8.0, 8.0), sensor_res=(2000, 2000))
 
         # Diffractive Fresnel DOE
         self.surfaces = [
@@ -66,20 +78,21 @@ class DiffractiveLens(Lens):
 
         # Sensor
         self.d_sensor = torch.tensor(50)
-        self.l_sensor = 4
+        self.sensor_size = (8.0, 8.0)
+        self.sensor_res = (2000, 2000)
 
         self.to(self.device)
         return self
 
     def read_lens_json(self, filename):
-        """Load lens from a .json sfile."""
+        """Load lens from a .json file."""
         assert filename.endswith(".json"), "File must be a .json file."
 
         with open(filename, "r") as f:
             # Lens general info
             data = json.load(f)
-            self.d_sensor = data["d_sensor"]
-            self.l_sensor = data["l_sensor"]
+            self.d_sensor = torch.tensor(data["d_sensor"])
+            self.sensor_size = data["sensor_size"]
             self.sensor_res = data["sensor_res"]
             self.lens_info = data["info"]
 
@@ -89,15 +102,15 @@ class DiffractiveLens(Lens):
             for surf_dict in data["surfaces"]:
                 surf_dict["d"] = d
 
-                if surf_dict["type"] == "Binary2":
+                if surf_dict["type"].lower() == "binary2":
                     s = Binary2.init_from_dict(surf_dict)
-                elif surf_dict["type"] == "Fresnel":
+                elif surf_dict["type"].lower() == "fresnel":
                     s = Fresnel.init_from_dict(surf_dict)
-                elif surf_dict["type"] == "Pixel2D":
+                elif surf_dict["type"].lower() == "pixel2d":
                     s = Pixel2D.init_from_dict(surf_dict)
-                elif surf_dict["type"] == "ThinLens":
+                elif surf_dict["type"].lower() == "thinlens":
                     s = ThinLens.init_from_dict(surf_dict)
-                elif surf_dict["type"] == "Zernike":
+                elif surf_dict["type"].lower() == "zernike":
                     s = Zernike.init_from_dict(surf_dict)
                 else:
                     raise ValueError(
@@ -122,7 +135,7 @@ class DiffractiveLens(Lens):
             wave = surf(wave)
 
         # Propagate to sensor
-        wave = wave.prop_to(self.d_sensor.item())  # TODO: check if we need .item()
+        wave = wave.prop_to(self.d_sensor.item())
 
         return wave
 
@@ -130,37 +143,60 @@ class DiffractiveLens(Lens):
         return self.forward(wave)
 
     # =============================================
-    # PSF-related functions
+    # Image simulation
     # =============================================
-    def psf(self, point=[0, 0, -10000.0], wvln=0.589, ks=101):
-        """Calculate monochromatic point PSF by wave propagation approach.
-
-            For the shifted phase issue, refer to "Modeling off-axis diffraction with the least-sampling angular spectrum method".
+    def render_mono(self, img, wvln=DEFAULT_WAVE, ks=101):
+        """Apply PSF to simulate lens blur for single spectral channel image.
 
         Args:
-            point (list, optional): Normalized point source position [-1, 1] x [-1, 1] x [0, Inf]. Defaults to [0, 0, -10000.0].
+            img (torch.Tensor): Input image. Shape: (B, 1, H, W)
+            wvln (float, optional): Wavelength. Defaults to DEFAULT_WAVE.
+            ks (int, optional): PSF kernel size. Defaults to 101.
+
+        Returns:
+            img_render (torch.Tensor): Rendered image. Shape: (B, C, H, W)
+        """
+        psf = self.psf_infinite(wvln=wvln, ks=ks).unsqueeze(0)  # (1, ks, ks)
+        img_render = render_psf(img, psf)
+        return img_render
+
+    # =============================================
+    # PSF-related functions
+    # =============================================
+    def psf(self, depth=float('inf'), wvln=0.589, ks=101):
+        """Calculate monochromatic point PSF by wave propagation approach.
+
+        Args:
+            depth (float, optional): Depth of the point source. Defaults to float('inf').
             wvln (float, optional): wvln. Defaults to 0.589 [um].
             ks (int, optional): PSF kernel size. Defaults to 101.
 
         Returns:
             psf_out (tensor): PSF. shape [ks, ks]
-        """
-        # Get input wave field
-        x, y, z = point
-        sensor_l = self.l_sensor
-        field_res = self.surfaces[0].res
-        scale = -z / self.d_sensor.item()
-        x_obj, y_obj = x * scale * sensor_l / 2, y * scale * sensor_l / 2
 
-        # We have to sample high resolution to meet Nyquist sampling constraint.
-        inp_wave = point_source_field(
-            point=[x_obj, y_obj, z],
-            phy_size=[sensor_l, sensor_l],
-            res=field_res,
-            wvln=wvln,
-            fieldz=self.surfaces[0].d.item(),
-            device=self.device,
-        )
+        Note:
+            [1] Usually we only consider the on-axis PSF because paraxial approximation is applied for wave optical model. For the shifted phase issue, refer to "Modeling off-axis diffraction with the least-sampling angular spectrum method".
+        """
+        # Sample input wave field (We have to sample high resolution to meet Nyquist sampling constraint)
+        field_res = self.surfaces[0].res
+        field_size = [field_res[0] * self.surfaces[0].ps, field_res[1] * self.surfaces[0].ps]
+        if depth == float('inf'):
+            inp_wave = plane_wave_field(
+                phy_size=field_size,
+                res=field_res,
+                wvln=wvln,
+                z=0.0,
+                device=self.device,
+            )
+        else:
+            inp_wave = point_source_field(
+                point=[0.0, 0.0, depth],
+                phy_size=field_size,
+                res=field_res,
+                wvln=wvln,
+                fieldz=self.surfaces[0].d.item(),
+                device=self.device,
+            )
 
         # Calculate intensity on the sensor. Shape [H_sensor, W_sensor]
         output_wave = self.forward(inp_wave)
@@ -172,9 +208,9 @@ class DiffractiveLens(Lens):
             align_corners=False,
         )[0, 0, :, :]
 
-        # Crop the valid patch of the full-resolution intensity as the PSF
-        coord_c_i = int((1 + y) * self.sensor_res[1] / 2)
-        coord_c_j = int((1 - x) * self.sensor_res[0] / 2)
+        # Crop the valid patch from the full-resolution intensity map as the PSF
+        coord_c_i = int(self.sensor_res[1] / 2)
+        coord_c_j = int(self.sensor_res[0] / 2)
         intensity_full_res = F.pad(
             intensity_full_res,
             [ks // 2, ks // 2, ks // 2, ks // 2],
@@ -203,7 +239,11 @@ class DiffractiveLens(Lens):
         sensor_l = self.l_sensor
         field_res = self.surfaces[0].res
         inp_wave = plane_wave_field(
-            phy_size=[sensor_l, sensor_l], res=field_res, wvln=wvln, z=0.0, device=self.device
+            phy_size=[sensor_l, sensor_l],
+            res=field_res,
+            wvln=wvln,
+            z=0.0,
+            device=self.device,
         )
 
         # Calculate intensity on the sensor. Shape [H_sensor, W_sensor]
