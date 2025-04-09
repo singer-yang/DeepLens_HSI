@@ -16,10 +16,16 @@ class HSICamera(Renderer):
 
         # RGB sensor
         sensor_config = json.load(open(sensor_file))
-        self.sensor = RGBSensor.from_config(sensor_config).to(self.device)
+        sensor = RGBSensor.from_config(sensor_config)
+        self.sensor = sensor.to(self.device)
 
         # Single DOE lens
-        self.lens = DiffractiveLens(filename=lens_file, device=self.device)
+        self.lens = DiffractiveLens(
+            filename=lens_file,
+            sensor_res=sensor.res,
+            sensor_size=sensor.size,
+            device=self.device,
+        )
         self.lens.surfaces[0].phase_map = self.read_mat()
 
     def read_mat(self, height_map_path="./lenses/paraxiallens/planar_doe.mat"):
@@ -54,7 +60,7 @@ class HSICamera(Renderer):
         # Calculate PSF for each spectral channel
         psf_spectral = torch.zeros((len(wvln_spectral), psf_ks, psf_ks)).to(self.device)
         for i, wvln in enumerate(wvln_spectral):
-            psf_chan = self.lens.psf(depth=depth, wvln=wvln, ks=psf_ks)
+            psf_chan = self.lens.psf(depth=depth, wvln=wvln, ks=psf_ks, upsample_factor=2)
             psf_spectral[i, :, :] = psf_chan
 
         # Plot PSFs
@@ -77,18 +83,6 @@ class HSICamera(Renderer):
         plt.tight_layout()
         fig.savefig(f"./psf_spectral_{depth}um.png", dpi=300, bbox_inches="tight")
 
-        # Create colorbar figure
-        cbar_fig = plt.figure(figsize=(8, 1))
-        cb = mcolors.ColorbarBase(
-            plt.gca(),
-            cmap=plt.cm.get_cmap(cmap_name),
-            norm=norm,
-            orientation="horizontal",
-        )
-        cb.set_label("Wavelength (μm)")
-        plt.tight_layout()
-        cbar_fig.savefig("psf_spectral_colorbar.png", dpi=300, bbox_inches="tight")
-
         plt.close("all")
 
     def spectral2rgb(self, img_spectral):
@@ -96,7 +90,7 @@ class HSICamera(Renderer):
         img_rgb_raw = self.sensor.response_curve(img_spectral)
         return img_rgb_raw
 
-    def render_lens(self, img_spectral, wvln_spectral, depth=float("inf"), psf_ks=51):
+    def render_lens(self, img_spectral, wvln_spectral, depth=float("inf"), psf_ks=201):
         """Render lens blur for each spectral channel.
 
         Args:
@@ -142,9 +136,7 @@ class HSICamera(Renderer):
             img_rgb_raw (torch.Tensor): Rendered RGB image. Shape: (B, 3, H, W)
         """
         data_dict = self.move_to_device(data_dict)
-        wvln_spectral = data_dict["wvln"][
-            0
-        ].tolist()  # (C,), we assume the same wvln for all images in the batch
+        wvln_spectral = data_dict["wvln"][0].tolist()  # (C,)
         img_spectral = data_dict["img"]  # (B, C, H, W)
 
         # Render lens blur for all spectral channels

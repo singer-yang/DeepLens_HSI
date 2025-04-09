@@ -242,8 +242,8 @@ class RGBSensor(Sensor):
         self,
         bit=10,
         black_level=64,
-        res=(4000, 3000),
-        size=(8.0, 6.0),
+        res=(2000, 2000),
+        size=(8.0, 8.0),
         bayer_pattern="rggb",
         iso_base=100,
         read_noise_std=0.5,
@@ -278,9 +278,10 @@ class RGBSensor(Sensor):
         self.green_response = green_response
         self.blue_response = blue_response
         if self.wavelengths is not None:
-            self.red_response = torch.tensor(red_response) / sum(red_response)
+            # Use green as the reference
+            self.red_response = torch.tensor(red_response) / sum(green_response)
             self.green_response = torch.tensor(green_response) / sum(green_response)
-            self.blue_response = torch.tensor(blue_response) / sum(blue_response)
+            self.blue_response = torch.tensor(blue_response) / sum(green_response)
 
     @classmethod
     def from_config(cls, config):

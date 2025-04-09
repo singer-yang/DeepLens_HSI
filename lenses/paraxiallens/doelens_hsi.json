@@ -1,8 +1,8 @@
 {
     "info": "A paraxial single DOE lens system for HSI.",
     "d_sensor": 50.0,
-    "sensor_size": [8.0, 8.0],
-    "sensor_res": [2000, 2000],
+    "sensor_size": [12.34, 12.34],
+    "sensor_res": [4504, 4504],
     "surfaces": [
         {
             "idx": 1,

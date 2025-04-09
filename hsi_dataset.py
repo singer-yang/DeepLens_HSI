@@ -171,11 +171,11 @@ class CaveDataset(Dataset):
             ]
         )
 
-        # Read all 31 images
+        # Read all 31 channels
         images = []
         for img_file in image_files:
             img_path = os.path.join(folder_path, img_file)
-            img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+            img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE) / 255.0
             images.append(img)
         hsi_tensor = np.stack(images, axis=-1).astype(np.float32) # [H, W, 31]
 

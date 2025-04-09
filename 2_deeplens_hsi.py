@@ -168,7 +168,7 @@ class Trainer:
         self.lpips_loss = PerceptualLoss(device=self.device)
 
         # Create metrics
-        # self.lpips_metric = lpips.LPIPS(net="vgg").to(self.device)
+        # self.lpips_metric = lpips.LPIPS(net="alex").to(self.device)
 
     def _init_data(self, train_set_config, eval_set_config):
         """Initialize data loaders."""
@@ -275,7 +275,10 @@ class Trainer:
 
         # Training loop
         for i, data_dict in enumerate(tqdm(self.train_loader, disable=self.rank != 0)):
-            # Image simulation, training data synthesis
+            
+            # Image simulation
+            # inputs: [B, 3, H, W]
+            # targets: [B, 31, H, W]
             inputs, targets = self.camera.render(data_dict)
 
             # Compute loss
@@ -305,11 +308,9 @@ class Trainer:
                 with torch.no_grad():
                     outputs = self.ddp_model(inputs)
 
-                    sensor = self.camera.sensor
-                    sensor.reset_augmentation()
-                    inputs_rgb = sensor.process2rgb(inputs[:, :4, :, :])
-                    outputs_rgb = sensor.process2rgb(outputs.detach()[:, :4, :, :])
-                    targets_rgb = sensor.process2rgb(targets[:, :4, :, :])
+                    inputs_rgb = inputs.clone()
+                    outputs_rgb = self.camera.spectral2rgb(outputs)
+                    targets_rgb = self.camera.spectral2rgb(targets)
                     save_image(
                         torch.cat([inputs_rgb, outputs_rgb, targets_rgb], dim=2),
                         f"{self.args['result_dir']}/train_epoch{epoch}_batch{i}.png",
@@ -335,6 +336,8 @@ class Trainer:
                 tqdm(self.val_loader, desc="Validating", disable=self.rank != 0)
             ):
                 # Apply blur to create inputs using camera
+                # inputs: [B, 3, H, W]
+                # targets: [B, 31, H, W]
                 inputs, targets = self.camera.render(data_dict)
 
                 # Forward pass
