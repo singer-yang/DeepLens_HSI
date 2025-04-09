@@ -1,5 +1,7 @@
 datasets/kaist/
+datasets/cave/
 DeepLens/
+results/
 *.zip
 
 # Byte-compiled / optimized / DLL files

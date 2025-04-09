@@ -1,13 +1,15 @@
 import json
+
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.io as sio
 import torch
+
+from deeplens.camera import Renderer
 from deeplens.diffraclens import DiffractiveLens
 from deeplens.optics.render_psf import render_psf
-from deeplens.camera import Camera, Renderer
 from deeplens.sensor import RGBSensor
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-import scipy.io as sio
-import numpy as np
 
 
 class HSICamera(Renderer):
@@ -29,7 +31,7 @@ class HSICamera(Renderer):
         self.lens.surfaces[0].phase_map = self.read_mat()
 
     def read_mat(self, height_map_path="./lenses/paraxiallens/planar_doe.mat"):
-        """Read phase map from a .mat file. This function only works for the BUPT DOE."""
+        """Read phase map from a .mat file. This function only works for the example DOE."""
         # Load the .mat file
         mat_data = sio.loadmat(height_map_path)
         data_keys = [k for k in mat_data.keys() if not k.startswith("__")]
@@ -54,13 +56,13 @@ class HSICamera(Renderer):
         return phase_map0
 
     def vis_psf(self, wvln_spectral, psf_ks=201, depth=float("inf")):
-        """Visualize PSF for each spectral channel with colors corresponding to wavelengths.
-        Wavelengths from ~400nm (blue/purple) to ~700nm (red).
-        """
+        """Visualize PSF for each spectral channel with colors corresponding to wavelengths. Wavelengths from 400nm (blue) to 700nm (red)."""
         # Calculate PSF for each spectral channel
         psf_spectral = torch.zeros((len(wvln_spectral), psf_ks, psf_ks)).to(self.device)
         for i, wvln in enumerate(wvln_spectral):
-            psf_chan = self.lens.psf(depth=depth, wvln=wvln, ks=psf_ks, upsample_factor=2)
+            psf_chan = self.lens.psf(
+                depth=depth, wvln=wvln, ks=psf_ks, upsample_factor=2
+            )
             psf_spectral[i, :, :] = psf_chan
 
         # Plot PSFs
@@ -81,7 +83,7 @@ class HSICamera(Renderer):
             plt.yticks([])
 
         plt.tight_layout()
-        fig.savefig(f"./psf_spectral_{depth}um.png", dpi=300, bbox_inches="tight")
+        fig.savefig(f"./psf_spectral_{-depth}mm.png", dpi=300, bbox_inches="tight")
 
         plt.close("all")
 
