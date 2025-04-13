@@ -7,6 +7,7 @@
         {
             "idx": 1,
             "type": "pixel2d",
+            "doe_path": "./lenses/paraxiallens/planar_doe.npy",
             "res": [1024, 1024],
             "fab_ps": 0.004,
             "(d)": 0.0,

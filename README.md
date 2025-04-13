@@ -1,0 +1,1 @@
+conda env create -f environment.yml -n new_environment_name

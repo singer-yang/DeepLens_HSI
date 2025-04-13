@@ -14,17 +14,18 @@ This code and data is released under the Creative Commons Attribution-NonCommerc
 import json
 
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torchvision.utils import save_image
 
 from .lens import Lens
-from .optics.basics import DEPTH, EPSILON, DEFAULT_WAVE
+from .optics.basics import DEFAULT_WAVE, DEPTH, EPSILON
 from .optics.diffractive_surface import Binary2, Fresnel, Pixel2D, ThinLens, Zernike
 from .optics.materials import Material
-from .optics.waveoptics_utils import point_source_field, plane_wave_field
 from .optics.render_psf import render_psf
 from .optics.utils import diff_float
+from .optics.waveoptics_utils import plane_wave_field, point_source_field
 
 
 class DiffractiveLens(Lens):
@@ -355,6 +356,8 @@ class DiffractiveLens(Lens):
                     s = Fresnel.init_from_dict(surf_dict)
                 elif surf_dict["type"].lower() == "pixel2d":
                     s = Pixel2D.init_from_dict(surf_dict)
+                    if surf_dict["doe_path"]:
+                        s.phase_map = torch.from_numpy(np.load(surf_dict["doe_path"])).to(self.device)
                 elif surf_dict["type"].lower() == "thinlens":
                     s = ThinLens.init_from_dict(surf_dict)
                 elif surf_dict["type"].lower() == "zernike":
@@ -363,7 +366,7 @@ class DiffractiveLens(Lens):
                     raise ValueError(
                         f"Diffractive surface type {surf_dict['type']} not implemented."
                     )
-
+                
                 self.surfaces.append(s)
                 d_next = surf_dict["d_next"]
                 d += d_next

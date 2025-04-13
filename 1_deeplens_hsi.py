@@ -24,7 +24,7 @@ from tqdm import tqdm
 
 from deeplens.network import NAFNet, PerceptualLoss
 from deeplens.utils import batch_psnr, batch_ssim, set_logger, set_seed
-from hsi_camera import HSICamera
+from deeplens.hsi_camera import HSICamera
 from hsi_dataset import CaveDataset
 
 

@@ -9,5 +9,4 @@ from .utils import *
 
 # doelens
 from .geolens import GeoLens
-from .psfnet import PSFNet
-from .camera import Camera
+from .hsi_camera import HSICamera
