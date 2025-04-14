@@ -77,3 +77,8 @@ This repository is an application example built upon the DeepLens framework. If 
   url={http://dx.doi.org/10.1145/3680528.3687640}
 }
 ```
+
+
+## Ackonledgement
+
+The height map of the DOE was provided by Jingyue Ma ("https://github.com/Jingyue-MA").
