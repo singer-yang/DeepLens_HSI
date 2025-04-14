@@ -1,0 +1,8 @@
+./datasets/cave/photo_and_face_ms/photo_and_face_ms
+./datasets/cave/clay_ms/clay_ms
+./datasets/cave/real_and_fake_peppers_ms/real_and_fake_peppers_ms
+./datasets/cave/chart_and_stuffed_toy_ms/chart_and_stuffed_toy_ms
+./datasets/cave/flowers_ms/flowers_ms
+./datasets/cave/pompoms_ms/pompoms_ms
+./datasets/cave/sponges_ms/sponges_ms
+./datasets/cave/fake_and_real_lemons_ms/fake_and_real_lemons_ms
